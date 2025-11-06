@@ -1,0 +1,6 @@
+accounts/
+server/accounts/
+server/db.sqlite3
+server/__pycache__/
+server/*.pyc
+.env
