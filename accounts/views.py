@@ -125,31 +125,47 @@ class PatientSearchView(generics.ListAPIView):
     queryset = CustomUser.objects.filter(is_staff=False).select_related('patient_profile').prefetch_related('groups')
 
     def get_queryset(self):
-        qs = super().get_queryset()
-        email = self.request.query_params.get('email')
-        sex = self.request.query_params.get('sex')
-        address = self.request.query_params.get('address')
-        created_by = self.request.query_params.get('created_by')
+        # base: active non-staff users (patients)
+        qs = CustomUser.objects.filter(is_active=True, is_staff=False)
 
-        q = self.request.query_params.get('q')  # generic search
-        if email:
-            return qs.filter(email__iexact=email)
+        # avoid N+1 when serializer reads related data
+        qs = qs.select_related('patient_profile').prefetch_related('groups')
 
-        if sex:
-            return qs.filter(sex__iexact=sex)
-        if address:
-            return qs.filter(patient_profile__address__icontains=address)
-        if created_by:
-            qs = qs.filter(patient_profile__created_by__email__iexact=created_by)
+        # query params
+        q = self.request.query_params.get('q')          # generic search (email/name)
+        email = self.request.query_params.get('email')  # exact email search
+        sex = self.request.query_params.get('sex')      # sex (male/female)
+        address = self.request.query_params.get('address')          # patient_profile.address
+        created_by = self.request.query_params.get('created_by')    # creator email or id
+
+        # Generic search across fields (OR)
         if q:
-            # example: search name or email substring
             return qs.filter(
                 Q(email__icontains=q) |
                 Q(first_name__icontains=q) |
                 Q(last_name__icontains=q) |
                 Q(middle_name__icontains=q)
             )
+
+        # Exact email filter (if provided)
+        if email:
+            qs = qs.filter(email__iexact=email)
+
+        # Sex filter (exact, case-insensitive)
+        if sex:
+            qs = qs.filter(sex__iexact=sex)
+
+        # Address filter on the related PatientProfile (substring search)
+        if address:
+            qs = qs.filter(patient_profile__address__icontains=address)
+
+        # created_by filter:
+        # Accept either creator email (string with @) or numeric id
+        if created_by:
+            qs = qs.filter(patient_profile__created_by__email__iexact=created_by)
+
         return qs
+
 
 class AccountsListView(generics.ListAPIView):
     queryset = CustomUser.objects.all()
