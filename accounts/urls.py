@@ -1,5 +1,6 @@
 from django.urls import path
-from .views import CustomTokenObtainPairView, StaffCreateView, PatientsCreateView, MeView, PatientListView
+from .views import (CustomTokenObtainPairView,
+                    StaffCreateView, PatientsCreateView, MeView, PatientListView, PatientSearchView)
 from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
@@ -9,5 +10,7 @@ urlpatterns = [
     path('patients/create/', PatientsCreateView.as_view(), name='create-patient'),
     path('staff/me/', MeView.as_view(), name='view-profile'),
     path('patients/', PatientListView.as_view(), name='patient-list'),
+    path('patients/search/', PatientSearchView.as_view(), name='patient-search'),
+
 
 ]

@@ -8,6 +8,7 @@ from .serializers import CustomUserSerializer
 from datetime import datetime
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
+from django.db.models import Q
 
 
 groups = [
@@ -110,11 +111,33 @@ class PatientListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsAdminUser, permissions.CanCreatePatientAccounts]
 
     def get_queryset(self):
-        all_patients = CustomUser.objects.filter(is_staff=True)
+        all_patients = CustomUser.objects.filter(is_staff=False)
 
         # add the related profile and group to what gets returned
         return all_patients.select_related('patient_profile').prefetch_related('groups')
 
+class PatientSearchView(generics.ListAPIView):
+    """
+    GET /api/patients/search/?email=... OR /api/patients/search/?q=...
+    """
+    serializer_class = CustomUserSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    queryset = CustomUser.objects.filter(is_staff=False).select_related('patient_profile').prefetch_related('groups')
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        email = self.request.query_params.get('email')
+        q = self.request.query_params.get('q')  # generic search
+        if email:
+            return qs.filter(email__iexact=email)
+        if q:
+            # example: search name or email substring
+            return qs.filter(
+                Q(email__icontains=q) |
+                Q(first_name__icontains=q) |
+                Q(last_name__icontains=q)
+            )
+        return qs
 
 class AccountsListView(generics.ListAPIView):
     queryset = CustomUser.objects.all()
