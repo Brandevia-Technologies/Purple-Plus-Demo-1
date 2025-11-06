@@ -127,15 +127,27 @@ class PatientSearchView(generics.ListAPIView):
     def get_queryset(self):
         qs = super().get_queryset()
         email = self.request.query_params.get('email')
+        sex = self.request.query_params.get('sex')
+        address = self.request.query_params.get('address')
+        created_by = self.request.query_params.get('created_by')
+
         q = self.request.query_params.get('q')  # generic search
         if email:
             return qs.filter(email__iexact=email)
+
+        if sex:
+            return qs.filter(sex__iexact=sex)
+        if address:
+            return qs.filter(patient_profile__address__icontains=address)
+        if created_by:
+            qs = qs.filter(patient_profile__created_by__email__iexact=created_by)
         if q:
             # example: search name or email substring
             return qs.filter(
                 Q(email__icontains=q) |
                 Q(first_name__icontains=q) |
-                Q(last_name__icontains=q)
+                Q(last_name__icontains=q) |
+                Q(middle_name__icontains=q)
             )
         return qs
 
