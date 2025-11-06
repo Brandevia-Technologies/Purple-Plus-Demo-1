@@ -101,8 +101,20 @@ class MeView(generics.RetrieveAPIView):
     serializer_class = CustomUserSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
+    def get_object(self):
+        # This returns the currently authenticated staff
         return self.request.user
+
+class PatientListView(generics.ListAPIView):
+    serializer_class = CustomUserSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser, permissions.CanCreatePatientAccounts]
+
+    def get_queryset(self):
+        all_patients = CustomUser.objects.filter(is_staff=True)
+
+        # add the related profile and group to what gets returned
+        return all_patients.select_related('patient_profile').prefetch_related('groups')
+
 
 class AccountsListView(generics.ListAPIView):
     queryset = CustomUser.objects.all()
