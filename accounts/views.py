@@ -10,17 +10,18 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from django.db.models import Q
 
-
 groups = [
-        'Doctor', 'Clinician', 'Patient',
-        'Registrar', 'Outreach Coordinator', 'Outreach Worker',
-        'Public Health Analyst', 'Inventory Manager',
-        'Finance Officer', 'Cashier', 'Hr', 'Receptionist'
-    ]
+    'Doctor', 'Clinician', 'Patient',
+    'Registrar', 'Outreach Coordinator', 'Outreach Worker',
+    'Public Health Analyst', 'Inventory Manager',
+    'Finance Officer', 'Cashier', 'Hr', 'Receptionist'
+]
+
 
 # CREATE views
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
 
 class StaffCreateView(generics.CreateAPIView):
     queryset = CustomUser.objects.all()
@@ -39,7 +40,7 @@ class StaffCreateView(generics.CreateAPIView):
             })
         if not department:
             raise ValidationError({"department": "This field is required. "
-                                                                   "Please specify a valid department name."})
+                                                 "Please specify a valid department name."})
         user = serializer.save(is_staff=True, is_patient=False)
         user.refresh_from_db()
 
@@ -93,9 +94,11 @@ class PatientsCreateView(generics.CreateAPIView):
             patient_profile.save()
         else:
             PatientProfile.objects.create(user=user, date_of_birth=date_of_birth,
-                                        address=address, emergency_contact=emergency_contact, created_by=self.request.user)
+                                          address=address, emergency_contact=emergency_contact,
+                                          created_by=self.request.user)
 
         return user
+
 
 #READ views
 class MeView(generics.RetrieveAPIView):
@@ -106,9 +109,10 @@ class MeView(generics.RetrieveAPIView):
         # This returns the currently authenticated staff
         return self.request.user
 
+
 class PatientListView(generics.ListAPIView):
     serializer_class = CustomUserSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser, permissions.CanCreatePatientAccounts]
+    permission_classes = [IsAdminUser, permissions.CanCreatePatientAccounts]
 
     def get_queryset(self):
         all_patients = CustomUser.objects.filter(is_staff=False)
@@ -116,12 +120,13 @@ class PatientListView(generics.ListAPIView):
         # add the related profile and group to what gets returned
         return all_patients.select_related('patient_profile').prefetch_related('groups')
 
+
 class PatientSearchView(generics.ListAPIView):
     """
     GET /api/patients/search/?email=... OR /api/patients/search/?q=...
     """
     serializer_class = CustomUserSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [permissions.CanCreatePatientAccounts, IsAdminUser]
     queryset = CustomUser.objects.filter(is_staff=False).select_related('patient_profile').prefetch_related('groups')
 
     def get_queryset(self):
@@ -132,11 +137,12 @@ class PatientSearchView(generics.ListAPIView):
         qs = qs.select_related('patient_profile').prefetch_related('groups')
 
         # query params
-        q = self.request.query_params.get('q')          # generic search (email/name)
-        email = self.request.query_params.get('email')  # exact email search
-        sex = self.request.query_params.get('sex')      # sex (male/female)
-        address = self.request.query_params.get('address')          # patient_profile.address
-        created_by = self.request.query_params.get('created_by')    # creator email or id
+        q = self.request.query_params.get('q').strip()  # generic search (email/name)
+        email = self.request.query_params.get('email').strip()  # exact email search
+        sex = self.request.query_params.get('sex').strip()  # sex (male/female)
+        address = self.request.query_params.get('address').strip()  # patient_profile.address
+        created_by = self.request.query_params.get('created_by').strip()  # creator email or id
+        dob = self.request.query_params.get('dob').strip()
 
         # Generic search across fields (OR)
         if q:
@@ -159,15 +165,76 @@ class PatientSearchView(generics.ListAPIView):
         if address:
             qs = qs.filter(patient_profile__address__icontains=address)
 
-        # created_by filter:
-        # Accept either creator email (string with @) or numeric id
+        # created_by filter
         if created_by:
             qs = qs.filter(patient_profile__created_by__email__iexact=created_by)
+        # date of birth filter (substring search: so users can search by year or day)
+        if dob:
+            qs = qs.filter(patient_profile__date_of_birth__icontains=dob)
 
         return qs
 
 
-class AccountsListView(generics.ListAPIView):
-    queryset = CustomUser.objects.all()
+class StaffListView(generics.ListAPIView):
     serializer_class = CustomUserSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUser, permissions.CanCreateStaffAccounts]
+
+    def get_queryset(self):
+        all_patients = CustomUser.objects.filter(is_staff=True)
+
+        # add the related profile and group to what gets returned
+        return all_patients.select_related('staff_profile').prefetch_related('groups')
+
+
+class StaffSearchView(generics.ListAPIView):
+    """
+    GET /api/patients/search/?email=... OR /api/patients/search/?q=...
+    """
+    serializer_class = CustomUserSerializer
+    permission_classes = [permissions.CanCreateStaffAccounts, IsAdminUser]
+    queryset = CustomUser.objects.filter(is_staff=True).select_related('staff_profile').prefetch_related('groups')
+
+    def get_queryset(self):
+        # base: active non-staff users (patients)
+        qs = CustomUser.objects.filter(is_active=True, is_staff=True)
+
+        # avoid N+1 when serializer reads related data
+        qs = qs.select_related('staff_profile').prefetch_related('groups')
+
+        # query params
+        q = self.request.query_params.get('q').strip()  # generic search (email/name)
+        email = self.request.query_params.get('email').strip()  # exact email search
+        sex = self.request.query_params.get('sex').strip()  # sex (male/female)
+        created_by = self.request.query_params.get('created_by').strip()  # creator email or id
+        department = self.request.query_params.get('created_by').strip()
+        group = self.request.query_params.get('group', '').strip()
+
+        # Generic search across fields (OR)
+        if q:
+            return qs.filter(
+                Q(email__icontains=q) |
+                Q(first_name__icontains=q) |
+                Q(last_name__icontains=q) |
+                Q(middle_name__icontains=q)
+            )
+
+        # Exact email filter (if provided)
+        if email:
+            qs = qs.filter(email__iexact=email)
+
+        # Sex filter (exact, case-insensitive)
+        if sex:
+            qs = qs.filter(sex__iexact=sex)
+
+        # created_by filter
+        if created_by:
+            qs = qs.filter(staff_profile__created_by__email__iexact=created_by)
+
+        if department:
+            qs = qs.filter(staff_profile__department__iexact=department)
+        if group:
+            qs = qs.filter(groups__name__iexact=group)
+        qs = qs.distinct()
+
+        return qs
+
