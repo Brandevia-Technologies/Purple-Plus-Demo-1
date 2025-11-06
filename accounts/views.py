@@ -175,15 +175,16 @@ class PatientSearchView(generics.ListAPIView):
         return qs
 
 
+
 class StaffListView(generics.ListAPIView):
     serializer_class = CustomUserSerializer
     permission_classes = [IsAdminUser, permissions.CanCreateStaffAccounts]
 
     def get_queryset(self):
-        all_patients = CustomUser.objects.filter(is_staff=True)
+        all_staff = CustomUser.objects.filter(is_staff=True)
 
         # add the related profile and group to what gets returned
-        return all_patients.select_related('staff_profile').prefetch_related('groups')
+        return all_staff.select_related('staff_profile').prefetch_related('groups')
 
 
 class StaffSearchView(generics.ListAPIView):
@@ -202,11 +203,11 @@ class StaffSearchView(generics.ListAPIView):
         qs = qs.select_related('staff_profile').prefetch_related('groups')
 
         # query params
-        q = self.request.query_params.get('q').strip()  # generic search (email/name)
-        email = self.request.query_params.get('email').strip()  # exact email search
-        sex = self.request.query_params.get('sex').strip()  # sex (male/female)
-        created_by = self.request.query_params.get('created_by').strip()  # creator email or id
-        department = self.request.query_params.get('created_by').strip()
+        q = self.request.query_params.get('q', '').strip()  # generic search (email/name)
+        email = self.request.query_params.get('email', '').strip()  # exact email search
+        sex = self.request.query_params.get('sex', '').strip()  # sex (male/female)
+        created_by = self.request.query_params.get('created_by', '').strip()  # creator email or id
+        department = self.request.query_params.get('department', '').strip()
         group = self.request.query_params.get('group', '').strip()
 
         # Generic search across fields (OR)
@@ -237,4 +238,3 @@ class StaffSearchView(generics.ListAPIView):
         qs = qs.distinct()
 
         return qs
-

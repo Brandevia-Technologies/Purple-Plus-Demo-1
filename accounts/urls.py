@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import (CustomTokenObtainPairView,
-                    StaffCreateView, PatientsCreateView, MeView, PatientListView, PatientSearchView)
+                    StaffCreateView, PatientsCreateView, MeView,
+                    PatientListView, PatientSearchView, StaffListView, StaffSearchView)
 from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
@@ -9,8 +10,9 @@ urlpatterns = [
     path('staff/create/', StaffCreateView.as_view(), name='create-staff'),
     path('patients/create/', PatientsCreateView.as_view(), name='create-patient'),
     path('staff/me/', MeView.as_view(), name='view-profile'),
-    path('patients/', PatientListView.as_view(), name='patient-list'),
+    path('all/patients/', PatientListView.as_view(), name='patient-list'),
     path('patients/search/', PatientSearchView.as_view(), name='patient-search'),
-
+    path('all/staff/', StaffListView.as_view(), name='patient-list'),
+    path('staff/search/', StaffSearchView.as_view(), name='patient-search'),
 
 ]
