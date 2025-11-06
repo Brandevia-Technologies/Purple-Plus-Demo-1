@@ -64,9 +64,9 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'is_active': {'read_only': True},
         }
 
-    def get_groups(self, obj):
+    def get_group(self, obj):
         group = obj.groups.first()
-        return group.name if group else None
+        return group.name if group else None  # or Patient?
 
     def create(self, validated_data):
         """

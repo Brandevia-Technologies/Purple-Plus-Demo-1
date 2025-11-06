@@ -17,6 +17,7 @@ groups = [
         'Finance Officer', 'Cashier', 'Hr', 'Receptionist'
     ]
 
+# CREATE views
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
@@ -95,3 +96,15 @@ class PatientsCreateView(generics.CreateAPIView):
 
         return user
 
+#READ views
+class MeView(generics.RetrieveAPIView):
+    serializer_class = CustomUserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return self.request.user
+
+class AccountsListView(generics.ListAPIView):
+    queryset = CustomUser.objects.all()
+    serializer_class = CustomUserSerializer
+    permission_classes = [IsAdminUser]
