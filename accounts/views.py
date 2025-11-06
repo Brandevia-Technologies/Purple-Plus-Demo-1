@@ -14,7 +14,7 @@ groups = [
         'Doctor', 'Clinician', 'Patient',
         'Registrar', 'Outreach Coordinator', 'Outreach Worker',
         'Public Health Analyst', 'Inventory Manager',
-        'Finance Officer', 'Cashier', 'HR', 'Receptionist'
+        'Finance Officer', 'Cashier', 'Hr', 'Receptionist'
     ]
 
 class CustomTokenObtainPairView(TokenObtainPairView):

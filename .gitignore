@@ -117,6 +117,7 @@ coverage/
 venv/
 env/
 ENV/
+.venv/
 
 # Python byte-compiled / optimized / DLL files
 __pycache__/
@@ -143,3 +144,6 @@ wheels/
 # Django migrations
 */migrations/*.py
 !*/migrations/__init__.pyserver/db.sqlite3
+
+#peculiar to branch
+server/

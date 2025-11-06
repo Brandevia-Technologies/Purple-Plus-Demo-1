@@ -5,8 +5,6 @@ from django.contrib.contenttypes.models import ContentType
 from .models import PatientReport, CustomUser
 import logging
 
-# Also How will createing superusers that can create say HR accounts work when I host since
-# the db gets cleared?
 
 logger = logging.getLogger(__name__)
 
