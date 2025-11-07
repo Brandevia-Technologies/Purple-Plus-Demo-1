@@ -17,8 +17,8 @@ class ForcePasswordChangeMiddleware:
         if user and user.is_authenticated:
             # Do nothing if already changing password or logging out, or if it's an exempt path
             change_url = reverse('change_password')
-            logout_url = reverse('logout') if 'logout' in [u.name for u in getattr(settings, 'ROOT_URLCONF', [])] else None
-            exempt = [change_url, getattr(logout_url, 'pattern', '')] + EXEMPT_PATHS
+            logout_url = reverse('logout')
+            exempt = [change_url, logout_url] + EXEMPT_PATHS
 
             if user.must_change_password and request.path != change_url and not any(request.path.startswith(p) for p in exempt):
                 # If the request is not the change-password endpoint, redirect them there

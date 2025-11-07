@@ -21,6 +21,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'email': self.user.email,
             'is_staff': self.user.is_staff,
             'is_superuser': self.user.is_superuser,
+            'must_change_password': self.user.must_change_password
         }
         return data
 
@@ -57,6 +58,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ['first_name', 'middle_name', 'last_name', 'sex',
                   'email', 'password', 'date_joined', 'is_active', 'is_patient',
+                  'must_change_password',
                   'last_login', 'patient_profile', 'staff_profile', 'group']
         extra_kwargs = {
             'password': {'required': False, 'write_only': True},
