@@ -53,7 +53,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ['first_name','middle_name', 'last_name','sex',
-                  'email', 'password', 'date_joined',
+                  'email', 'password', 'date_joined', 'is_active',
                   'last_login','patient_profile', 'staff_profile', 'group']
         extra_kwargs = {
             'password': {'write_only': True},  # never return password in responses
@@ -62,11 +62,12 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'is_staff': {'read_only': True},  # set by views/perform_create
             'is_superuser': {'read_only': True},
             'is_active': {'read_only': True},
+            'is_patient': {'read_only': True},
         }
 
     def get_group(self, obj):
-        group = obj.ALL_GROUPS.first()
-        return group.name if group else None  # or Patient?
+        group = obj.groups.first()
+        return group.name if group else None
 
     def create(self, validated_data):
         """
