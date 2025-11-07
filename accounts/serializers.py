@@ -53,7 +53,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ['first_name','middle_name', 'last_name','sex',
-                  'email', 'password', 'date_joined', 'is_active',
+                  'email', 'password', 'date_joined', 'is_active', 'is_patient'
                   'last_login','patient_profile', 'staff_profile', 'group']
         extra_kwargs = {
             'password': {'write_only': True},  # never return password in responses

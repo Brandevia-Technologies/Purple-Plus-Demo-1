@@ -5,7 +5,7 @@ from django.conf import settings
 
 
 class CustomUserManager(BaseUserManager):
-    def create_user(self, first_name, middle_name, last_name, sex, email, password, **extra_fields):
+    def create_user(self, first_name, middle_name, last_name, sex, email, password=None, **extra_fields):
         if not email:
             raise ValueError("Email is required")
         if not first_name:
@@ -14,8 +14,8 @@ class CustomUserManager(BaseUserManager):
             raise ValueError("Middle name is required")
         if not last_name:
             raise ValueError("Last name is required")
-        if not password:
-            raise ValueError("Password is required")
+        if password is None or password == '':  # password is email address without the @ until changed by the user
+            password = email.split('@')[0]
         if not sex:
             raise ValueError("Sex is required")
         if sex.lower() not in ['female', 'male']:
