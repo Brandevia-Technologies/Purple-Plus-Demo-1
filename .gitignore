@@ -4,3 +4,4 @@ server/db.sqlite3
 server/__pycache__/
 server/*.pyc
 .env
+server/server/__pycache__/
