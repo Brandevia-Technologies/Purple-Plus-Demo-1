@@ -1,1 +1,9 @@
 @import "tailwindcss";
+body {
+  font-family: "Inter", sans-serif;
+}
+
+@theme {
+  --color-purple-primary: #6b29b6;
+  --color-warning-red: #7f0a0a;
+}
