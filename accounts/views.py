@@ -1,11 +1,11 @@
 from .globals import ALL_GROUPS
-from .serializers import CustomTokenObtainPairSerializer
+from .serializers import CustomTokenObtainPairSerializer, CustomUserSerializer, PasswordChangeSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework import generics
+from rest_framework import generics, status
 from .models import CustomUser, StaffProfile, PatientProfile
 from django.contrib.auth.models import Group
 from . import permissions
-from .serializers import CustomUserSerializer
+from rest_framework.response import Response
 from datetime import datetime
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
@@ -231,5 +231,18 @@ class StaffSearchView(generics.ListAPIView):
         return qs
 
 # TODO: UPDATE views
+class PasswordChangeView(generics.UpdateAPIView):
+    serializer_class = PasswordChangeSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+    def update(self, request, *args, **kwargs):
+        # Use serializer to validate & save
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "Password updated successfully."}, status=status.HTTP_200_OK)
 
 #TODO: DELETE views

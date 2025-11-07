@@ -16,6 +16,7 @@ class CustomUserManager(BaseUserManager):
             raise ValueError("Last name is required")
         if password is None or password == '':  # password is email address without the @ until changed by the user
             password = email.split('@')[0]
+            extra_fields["must_change_password"] = True
         if not sex:
             raise ValueError("Sex is required")
         if sex.lower() not in ['female', 'male']:
@@ -51,9 +52,13 @@ class CustomUser(AbstractUser):
     first_name = models.CharField(max_length=150)
     middle_name = models.CharField(max_length=150)
     last_name = models.CharField(max_length=150)
-    sex = models.CharField(choices=[('Male', 'M'), ('Female', 'F')])
+    sex = models.CharField(
+        max_length=6,
+        choices=[('Male', 'Male'), ('Female', 'Female')],
+    )
     is_staff = models.BooleanField(default=False)  # Django built-in meaning: can log into admin
     is_patient = models.BooleanField(default=False)
+    must_change_password = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'middle_name', 'last_name', 'sex']
