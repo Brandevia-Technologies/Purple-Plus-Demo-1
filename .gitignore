@@ -114,7 +114,7 @@ ENV/
 
 
 # Django migrations
-*/migrations/*.py
+#*/migrations/*.py
 !*/migrations/__init__.pyserver/db.sqlite3
 
 #peculiar to branch
