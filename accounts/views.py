@@ -238,3 +238,7 @@ class StaffSearchView(generics.ListAPIView):
         qs = qs.distinct()
 
         return qs
+
+# TODO: UPDATE views
+
+#TODO: DELETE views
