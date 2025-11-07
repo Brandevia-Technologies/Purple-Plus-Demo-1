@@ -56,10 +56,9 @@ class CustomUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ['first_name', 'middle_name', 'last_name', 'sex',
-                  'email', 'password', 'date_joined', 'is_active', 'is_patient',
-                  'must_change_password',
-                  'last_login', 'patient_profile', 'staff_profile', 'group']
+        fields = ['email','first_name', 'middle_name', 'last_name', 'sex',
+                 'group', 'date_joined', 'is_active', 'is_patient',
+                'patient_profile', 'staff_profile', 'must_change_password']
         extra_kwargs = {
             'password': {'required': False, 'write_only': True},
             'date_joined': {'read_only': True},
