@@ -3,6 +3,7 @@ from django.db.models.signals import post_migrate
 from django.dispatch import receiver
 from django.contrib.contenttypes.models import ContentType
 from .models import PatientReport, CustomUser
+from .globals import ALL_GROUPS
 import logging
 
 
@@ -11,14 +12,8 @@ logger = logging.getLogger(__name__)
 
 @receiver(post_migrate)
 def create_groups(sender, **kwargs):  # called automatically after each migrating
-    groups = [
-        'Doctor', 'Clinician', 'Patient',
-        'Registrar', 'Outreach Coordinator', 'Outreach Worker',
-        'Public Health Analyst', 'Inventory Manager',
-        'Finance Officer', 'Cashier', 'Hr', 'Receptionist'
-    ]
 
-    for group_name in groups:
+    for group_name in ALL_GROUPS:
         group, created = Group.objects.get_or_create(
             name=group_name
         )

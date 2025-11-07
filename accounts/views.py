@@ -1,3 +1,4 @@
+from .globals import ALL_GROUPS
 from .serializers import CustomTokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import generics
@@ -9,13 +10,6 @@ from datetime import datetime
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from django.db.models import Q
-
-groups = [
-    'Doctor', 'Clinician', 'Patient',
-    'Registrar', 'Outreach Coordinator', 'Outreach Worker',
-    'Public Health Analyst', 'Inventory Manager',
-    'Finance Officer', 'Cashier', 'Hr', 'Receptionist'
-]
 
 
 # CREATE views
@@ -34,17 +28,15 @@ class StaffCreateView(generics.CreateAPIView):
 
         if not group_name:
             raise ValidationError({"group": "This field is required. Please specify a valid group name."})
-        if group_name not in groups:
+        if group_name not in ALL_GROUPS:
             raise ValidationError({
-                "group": f"Group name should be in {', '.join(groups)} else it's invalid."
+                "group": f"Group name should be in {', '.join(ALL_GROUPS)} else it's invalid."
             })
         if not department:
             raise ValidationError({"department": "This field is required. "
                                                  "Please specify a valid department name."})
         user = serializer.save(is_staff=True, is_patient=False)
         user.refresh_from_db()
-
-        print("GROUP NAME", group_name)  #TODO: find a way to include this inside my serializer
 
         group, _ = Group.objects.get_or_create(name=group_name.strip().title())
         user.groups.add(group)
@@ -173,7 +165,6 @@ class PatientSearchView(generics.ListAPIView):
             qs = qs.filter(patient_profile__date_of_birth__icontains=dob)
 
         return qs
-
 
 
 class StaffListView(generics.ListAPIView):
