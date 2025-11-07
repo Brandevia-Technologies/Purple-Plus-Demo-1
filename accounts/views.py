@@ -8,7 +8,7 @@ from . import permissions
 from rest_framework.response import Response
 from datetime import datetime
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.db.models import Q
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
@@ -243,9 +243,19 @@ class PasswordChangeView(generics.UpdateAPIView):
     def update(self, request, *args, **kwargs):
         # Use serializer to validate & save
         serializer = self.get_serializer(data=request.data, context={'request': request})
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return Response({
+                "success": False,
+                "message": "Password change failed.",
+                "errors": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         serializer.save()
-        return Response({"detail": "Password updated successfully."}, status=status.HTTP_200_OK)
+        return Response({
+            "success": True,
+            "detail": "Password updated successfully.",
+
+        }, status=status.HTTP_200_OK)
 
 #TODO: DELETE views
 

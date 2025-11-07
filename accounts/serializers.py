@@ -17,7 +17,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
         data['user'] = {
-            'username': self.user.username,
             'email': self.user.email,
             'is_staff': self.user.is_staff,
             'is_superuser': self.user.is_superuser,
@@ -97,7 +96,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
         return user
 
 
-class PasswordChangeSerializer(serializers.ModelSerializer):
+class PasswordChangeSerializer(serializers.Serializer):
     old_pw = serializers.CharField(write_only=True, required=True)
     new_pw = serializers.CharField(write_only=True, required=True)
     confirm_new_pw = serializers.CharField(write_only=True, required=True)
@@ -112,10 +111,13 @@ class PasswordChangeSerializer(serializers.ModelSerializer):
         password_validation.validate_password(value, self.context['request'].user)
         return value
 
+
     def validate(self, attrs):
-        # Ensure new and confirm match
         if attrs['new_pw'] != attrs['confirm_new_pw']:
             raise serializers.ValidationError({'confirm_new_pw': 'New passwords must match.'})
+        if attrs['old_pw'] == attrs['new_pw']:
+            raise serializers.ValidationError({'confirm_new_pw': 'New passwords cannot be the same as old password.'})
+
         return attrs
 
     def save(self, **kwargs):
