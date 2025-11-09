@@ -100,7 +100,7 @@ class MeView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        # This returns the currently authenticated staff
+        # This returns the currently authenticated user
         return self.request.user
 
 
@@ -232,7 +232,7 @@ class StaffSearchView(generics.ListAPIView):
 
         return qs
 
-# TODO: UPDATE views
+
 class PasswordChangeView(generics.UpdateAPIView):
     serializer_class = PasswordChangeSerializer
     permission_classes = [IsAuthenticated]
@@ -257,6 +257,7 @@ class PasswordChangeView(generics.UpdateAPIView):
 
         }, status=status.HTTP_200_OK)
 
+
 #TODO: DELETE views
 
 
@@ -269,6 +270,77 @@ class LogoutView(APIView):
             refresh_token = request.data["refresh"]
             token = RefreshToken(refresh_token)
             token.blacklist()
-            return Response({"detail": "Successfully logged out."}, status=status.HTTP_205_RESET_CONTENT)
+            return Response({"success": True, "detail": "Successfully logged out."},
+                            status=status.HTTP_205_RESET_CONTENT)
         except Exception:
-            return Response({"detail": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"success": False, "detail": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
+
+def revoke_user_sessions_and_tokens(user):
+    """
+    Delete sessions, DRF Tokens, and blacklist JWTs (SimpleJWT).
+    """
+    # --- Django Sessions ---
+    from django.contrib.sessions.models import Session
+    for session in Session.objects.all():
+        data = session.get_decoded()
+        if str(data.get("_auth_user_id")) == str(user.pk):
+            session.delete()
+
+    # --- DRF Tokens (TokenAuth) ---
+    try:
+        from rest_framework.authtoken.models import Token
+        Token.objects.filter(user=user).delete()
+    except Exception:
+        pass
+
+    # --- SimpleJWT Blacklisting ---
+    try:
+        from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+        for token in OutstandingToken.objects.filter(user=user):
+            BlacklistedToken.objects.get_or_create(token=token)
+    except Exception:
+        pass
+
+
+class BaseDeactivateView(generics.UpdateAPIView):
+    def deactivate_user(self, user):
+        if not user.is_active:
+            return Response(
+                {"success": False, "detail": "Account already deactivated."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if self.request.user == user:
+            return Response(
+                {"success": False, "detail": "You cannot deactivate your own account."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        user.is_active = False
+        user.save()
+        revoke_user_sessions_and_tokens(user)
+        return Response(
+            {"success": True, "detail": "Account deactivated successfully."},
+            status=status.HTTP_200_OK,
+        )
+
+    def update(self, request, *args, **kwargs):
+        try:
+            user = self.get_object()
+            return self.deactivate_user(user)
+        except user.DoesNotExist:
+            return Response(
+                {"success": False, "detail": "User not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            return Response(
+                {"success": False, "detail": f"Error: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+class DeactivatePatientAccountView(BaseDeactivateView):
+    queryset = CustomUser.objects.filter(is_staff=False)
+    permission_classes = [IsAuthenticated, permissions.CanCreatePatientAccounts]
+
+
+class DeactivateStaffAccountView(BaseDeactivateView):
+    queryset = CustomUser.objects.filter(is_staff=True)
+    permission_classes = [IsAuthenticated, permissions.CanCreateStaffAccounts]
