@@ -326,11 +326,6 @@ class BaseDeactivateView(generics.UpdateAPIView):
         try:
             user = self.get_object()
             return self.deactivate_user(user)
-        except user.DoesNotExist:
-            return Response(
-                {"success": False, "detail": "User not found."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
         except Exception as e:
             return Response(
                 {"success": False, "detail": f"Error: {str(e)}"},
