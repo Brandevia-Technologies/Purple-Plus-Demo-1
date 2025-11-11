@@ -275,31 +275,6 @@ class LogoutView(APIView):
         except Exception:
             return Response({"success": False, "detail": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
 
-def revoke_user_sessions_and_tokens(user):
-    """
-    Delete sessions, DRF Tokens, and blacklist JWTs (SimpleJWT).
-    """
-    # --- Django Sessions ---
-    from django.contrib.sessions.models import Session
-    for session in Session.objects.all():
-        data = session.get_decoded()
-        if str(data.get("_auth_user_id")) == str(user.pk):
-            session.delete()
-
-    # --- DRF Tokens (TokenAuth) ---
-    try:
-        from rest_framework.authtoken.models import Token
-        Token.objects.filter(user=user).delete()
-    except Exception:
-        pass
-
-    # --- SimpleJWT Blacklisting ---
-    try:
-        from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
-        for token in OutstandingToken.objects.filter(user=user):
-            BlacklistedToken.objects.get_or_create(token=token)
-    except Exception:
-        pass
 
 
 class BaseDeactivateView(generics.UpdateAPIView):
@@ -314,23 +289,19 @@ class BaseDeactivateView(generics.UpdateAPIView):
                 {"success": False, "detail": "You cannot deactivate your own account."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        user.is_active = False
-        user.save()
-        revoke_user_sessions_and_tokens(user)
-        return Response(
-            {"success": True, "detail": "Account deactivated successfully."},
-            status=status.HTTP_200_OK,
-        )
-
-    def update(self, request, *args, **kwargs):
-        try:
-            user = self.get_object()
-            return self.deactivate_user(user)
-        except Exception as e:
+        if user.is_superuser and self.request.user.is_superuser or not user.is_superuser:
+            user.is_active = False
+            user.save()
             return Response(
-                {"success": False, "detail": f"Error: {str(e)}"},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"success": True, "detail": "Account deactivated successfully."},
+                status=status.HTTP_200_OK,
+        )
+        else:
+            return Response(
+                {"success": False, "detail": "You do not have permission to deactivate this user's account."},
+                status=status.HTTP_403_FORBIDDEN,
             )
+
 class DeactivatePatientAccountView(BaseDeactivateView):
     queryset = CustomUser.objects.filter(is_staff=False)
     permission_classes = [IsAuthenticated, permissions.CanCreatePatientAccounts]
