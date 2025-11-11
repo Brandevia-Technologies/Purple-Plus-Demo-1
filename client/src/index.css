@@ -6,4 +6,17 @@ body {
 @theme {
   --color-purple-primary: #6b29b6;
   --color-warning-red: #7f0a0a;
+  --color-light-purple:#FCFAFF;
+  --color-light-border:#E6E6E6;
+}
+/* Chrome, Edge, Safari */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
 }

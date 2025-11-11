@@ -1,5 +1,6 @@
 import React from "react";
 import AuthForm from "../../components/AuthForm";
+import {Link} from 'react-router-dom'
 const Login: React.FC = () => {
   return (
     <AuthForm
