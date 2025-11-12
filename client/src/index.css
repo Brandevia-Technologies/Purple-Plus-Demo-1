@@ -8,6 +8,10 @@ body {
   --color-warning-red: #7f0a0a;
   --color-light-purple:#FCFAFF;
   --color-light-border:#E6E6E6;
+  --color-purple-dark: #130326;
+  --color-purple-powder:#E4CCFF;
+  --color-purple-7:#B180E9;
+  --color-purple-3:#531798;
 }
 /* Chrome, Edge, Safari */
 input[type=number]::-webkit-outer-spin-button,
