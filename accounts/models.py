@@ -88,7 +88,7 @@ class CustomUser(AbstractUser):
         super().save(*args, **kwargs)
 
 class Profile(models.Model):
-    nin = models.CharField(max_length=11, validators=[NINValidator()])
+    nin = models.CharField(max_length=11, validators=[NINValidator()], unique=True, null=True, blank=True)
     address = models.CharField(max_length=255, blank=True)
     emergency_contact = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
