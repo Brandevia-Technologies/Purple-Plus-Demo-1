@@ -12,7 +12,6 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
-AUTH_USER_MODEL = "accounts.CustomUser"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -34,6 +33,7 @@ SIMPLE_JWT = {
 }
 
 # Application definition
+AUTH_USER_MODEL = "accounts.CustomUser"
 
 INSTALLED_APPS = [
     'django.contrib.admin',
