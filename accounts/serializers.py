@@ -44,7 +44,7 @@ class StaffProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StaffProfile
-        fields = ['department', 'created_by']
+        fields = ['department', 'created_by', 'emergency_contact', 'address']
 
 
 class CustomUserSerializer(serializers.ModelSerializer):

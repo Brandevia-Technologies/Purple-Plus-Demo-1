@@ -2,7 +2,7 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.conf import settings
-
+from .validators import NINValidator
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, first_name, middle_name, last_name, sex, email, password=None, **extra_fields):
@@ -56,12 +56,13 @@ class CustomUser(AbstractUser):
         max_length=6,
         choices=[('Male', 'Male'), ('Female', 'Female')],
     )
-    is_staff = models.BooleanField(default=False)  # Django built-in meaning: can log into admin
+
+    is_staff = models.BooleanField(default=False)
     is_patient = models.BooleanField(default=False)
     must_change_password = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['first_name', 'middle_name', 'last_name', 'sex']
+    REQUIRED_FIELDS = ['first_name', 'middle_name', 'last_name', 'sex', 'nin']
 
     objects = CustomUserManager()
 
@@ -86,9 +87,26 @@ class CustomUser(AbstractUser):
         self.full_clean()  # runs the clean() validation before saving
         super().save(*args, **kwargs)
 
+class Profile(models.Model):
+    nin = models.CharField(max_length=11, validators=[NINValidator()])
+    address = models.CharField(max_length=255, blank=True)
+    emergency_contact = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-class StaffProfile(models.Model):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='staff_profile')
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        return f"Profile (NIN: {self.nin})"
+
+
+class StaffProfile(Profile):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='staff_profile'
+    )
     department = models.CharField(max_length=100, blank=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -98,18 +116,17 @@ class StaffProfile(models.Model):
         related_name='staff_created'
     )
 
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.department}"
 
 
-class PatientProfile(models.Model):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='patient_profile')
+class PatientProfile(Profile):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='patient_profile'
+    )
     date_of_birth = models.DateField(null=True, blank=True)
-    address = models.CharField(max_length=255, blank=True)
-    emergency_contact = models.CharField(max_length=100, blank=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -117,12 +134,9 @@ class PatientProfile(models.Model):
         blank=True,
         related_name='patients_created'
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Patient: {self.user.get_full_name()}"
-
+        return f"{self.user.get_full_name()} - Patient"
 
 class PatientReport(models.Model):
     report = models.CharField(blank=False, null=False)
