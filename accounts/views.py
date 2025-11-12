@@ -1,4 +1,5 @@
 from .globals import ALL_GROUPS
+from django.db import transaction
 from .serializers import CustomTokenObtainPairSerializer, CustomUserSerializer, PasswordChangeSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import generics, status
@@ -12,87 +13,144 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.db.models import Q
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
-
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework.exceptions import ValidationError as DRFValidationError
 
 # CREATE views
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
 
-class StaffCreateView(generics.CreateAPIView):
+class BaseUserCreateView(generics.CreateAPIView):
+    profile_model = None  # override in subclass
+    profile_fields = []  # list of profile fields to get from request.data
+
+    def get_profile_data(self):
+        """Helper to get profile data from request"""
+        return {field: self.request.data.get(field) for field in self.profile_fields}
+
+    def validate_required_fields(self, data):
+        missing_or_empty = [f for f in self.profile_fields if not data.get(f)]
+        if missing_or_empty:
+            raise ValidationError({field: "This field is required." for field in missing_or_empty})
+
+    def create(self, request, *args, **kwargs):
+
+        try:
+            with transaction.atomic():
+                # Step 1: DRF standard validation (which includes unique email check)
+                serializer = self.get_serializer(data=request.data)
+                # This call will raise the 'email already exists' error if applicable
+                serializer.is_valid(raise_exception=True)
+
+                # Step 2: Call the custom perform_create method
+                # (which no longer needs the @transaction.atomic decorator as it's already inside one)
+                self.perform_create(serializer)
+
+                # If all succeeds:
+                headers = self.get_success_headers(serializer.data)
+                return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        except DRFValidationError as e:
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            # Handle unexpected errors
+            return Response({"success": False,
+                             "detail": f"An unexpected error occurred: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    def perform_create(self, serializer):
+        # Save user first but inside atomic transaction
+        user = serializer.save()
+        user.refresh_from_db()
+
+        # Gather profile data
+        profile_data = self.get_profile_data()
+
+        # Create or update profile
+        profile = getattr(user, self.profile_model._meta.get_field('user').remote_field.related_name, None)
+        try:
+            if profile:
+                # Update existing profile fields
+                for key, value in profile_data.items():
+                    setattr(profile, key, value)
+                profile.created_by = self.request.user
+                profile.full_clean()
+                profile.save()
+            else:
+                self.profile_model.objects.create(user=user, created_by=self.request.user, **profile_data)
+
+        except DjangoValidationError as e:
+            # Raise DRF validation error, transaction will rollback automatically
+            raise DRFValidationError(e.message_dict)
+
+        return user
+
+
+class StaffCreateView(BaseUserCreateView):
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
     permission_classes = [permissions.CanCreateStaffAccounts]
 
+    profile_model = StaffProfile
+    profile_fields = ['department', 'address', 'emergency_contact', 'nin']
+
     def perform_create(self, serializer):
         group_name = self.request.data.get("group")
-        department = self.request.data.get("department")
-
         if not group_name:
-            raise ValidationError({"group": "This field is required. Please specify a valid group name."})
+            raise DRFValidationError({"group": "This field is required. Please specify a valid group name."})
         if group_name not in ALL_GROUPS:
-            raise ValidationError({
+            raise DRFValidationError({
                 "group": f"Group name should be in {', '.join(ALL_GROUPS)} else it's invalid."
             })
-        if not department:
-            raise ValidationError({"department": "This field is required. "
-                                                 "Please specify a valid department name."})
+
         user = serializer.save(is_staff=True, is_patient=False)
         user.refresh_from_db()
-
         group, _ = Group.objects.get_or_create(name=group_name.strip().title())
         user.groups.add(group)
 
-        staff_profile = getattr(user, "staff_profile", None)
-        if staff_profile:
-            staff_profile.department = department.strip()
-            staff_profile.created_by = self.request.user
-
-            staff_profile.save()
-        else:
-            # Fallback (if signal didn’t run for any reason)
-            StaffProfile.objects.create(user=user, department=department.strip(), created_by=self.request.user)
-        return user
+        # Call base perform_create for profile creation and validation inside transaction
+        return super().perform_create(serializer)
 
 
-class PatientsCreateView(generics.CreateAPIView):
+class PatientsCreateView(BaseUserCreateView):
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
     permission_classes = [permissions.CanCreatePatientAccounts]
 
-    def perform_create(self, serializer):
-        date_of_birth = self.request.data.get("dob")
-        address = self.request.data.get("address")
-        emergency_contact = self.request.data.get("emergency_contact")
-        if not all([date_of_birth, address, emergency_contact]):
-            raise ValidationError({"dob": "This field is required",
-                                   "address": "This field is required",
-                                   "emergency_contact": "This is a required field"})
+    profile_model = PatientProfile
+    profile_fields = ['date_of_birth', 'address', 'emergency_contact', 'nin']
+
+    def get_profile_data(self):
+        """
+        Override to map 'dob' from request.data to 'date_of_birth' in profile data.
+        """
+        data = super().get_profile_data()
+        dob = self.request.data.get('dob')
+        if dob:
+            data['date_of_birth'] = dob
+        return data
+
+    def validate_required_fields(self, data):
+        """
+        Override to validate 'dob' existence and format separately since it comes
+        under request.data key 'dob' not 'date_of_birth'.
+        """
+        dob = self.request.data.get('dob')
+        if not dob:
+            raise DRFValidationError({"dob": "This field is required."})
 
         try:
-            datetime.strptime(date_of_birth, "%Y-%m-%d")
+            datetime.strptime(dob, "%Y-%m-%d")
         except ValueError:
-            raise ValidationError({
-                "dob": "Date must be in YYYY-MM-DD format"
-            })
+            raise DRFValidationError({"dob": "Date must be in YYYY-MM-DD format."})
 
-        user = serializer.save(is_patient=True, is_staff=False, )
+        # Validate other profile fields normally
+        super().validate_required_fields(data)
+
+    def perform_create(self, serializer):
+        user = serializer.save(is_patient=True, is_staff=False)
         user.refresh_from_db()
 
-        patient_profile = getattr(user, "patient_profile", None)
-        if patient_profile:
-            patient_profile.date_of_birth = date_of_birth
-            patient_profile.address = address
-            patient_profile.emergency_contact = emergency_contact
-            patient_profile.created_by = self.request.user
-            patient_profile.save()
-        else:
-            PatientProfile.objects.create(user=user, date_of_birth=date_of_birth,
-                                          address=address, emergency_contact=emergency_contact,
-                                          created_by=self.request.user)
-
-        return user
-
+        return super().perform_create(serializer)
 
 #READ views
 class MeView(generics.RetrieveAPIView):

@@ -1,7 +1,8 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
-from .models import CustomUser, PatientProfile, StaffProfile
+from .models import CustomUser, PatientProfile, StaffProfile, Profile
 from django.contrib.auth import password_validation
+from .validators import NINValidator
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -25,26 +26,32 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         return data
 
 
-class PatientProfileSerializer(serializers.ModelSerializer):
+
+class ProfileSerializer(serializers.ModelSerializer):
     created_by = serializers.SlugRelatedField(
         read_only=True,
         slug_field='email'
     )
-
     class Meta:
+        model = Profile
+        fields = ['created_by', 'address', 'emergency_contact']
+        extra_kwargs = {
+            'nin': {
+                'validators': [NINValidator],
+                'write_only': True
+            }
+        }
+class PatientProfileSerializer(ProfileSerializer):
+    class Meta(ProfileSerializer.Meta):
         model = PatientProfile
-        fields = ['date_of_birth', 'address', 'emergency_contact', 'created_by']
+        fields = ProfileSerializer.Meta.fields + ['date_of_birth']
 
 
-class StaffProfileSerializer(serializers.ModelSerializer):
-    created_by = serializers.SlugRelatedField(
-        read_only=True,
-        slug_field='email'
-    )
+class StaffProfileSerializer(ProfileSerializer):
+        class Meta(ProfileSerializer.Meta):
+            model = StaffProfile
+            fields = ProfileSerializer.Meta.fields + ['department']
 
-    class Meta:
-        model = StaffProfile
-        fields = ['department', 'created_by', 'emergency_contact', 'address']
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
