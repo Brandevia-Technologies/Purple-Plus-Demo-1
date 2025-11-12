@@ -7,6 +7,7 @@ const ForgotPassword: React.FC = () => {
       description="That's fine, Fill in your account email to recieve an OTP to reset your password."
       btnText="Request OTP"
       showOTP={true}
+      formType="otp"
     />
   );
 };
