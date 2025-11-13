@@ -40,11 +40,8 @@ class BaseUserCreateView(generics.CreateAPIView):
             with transaction.atomic():
                 # Step 1: DRF standard validation (which includes unique email check)
                 serializer = self.get_serializer(data=request.data)
-                # This call will raise the 'email already exists' error if applicable
                 serializer.is_valid(raise_exception=True)
 
-                # Step 2: Call the custom perform_create method
-                # (which no longer needs the @transaction.atomic decorator as it's already inside one)
                 self.perform_create(serializer)
 
                 # If all succeeds:
