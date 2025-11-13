@@ -34,13 +34,15 @@ class ProfileSerializer(serializers.ModelSerializer):
     )
     class Meta:
         model = Profile
-        fields = ['created_by', 'address', 'emergency_contact']
+        fields = ['created_by', 'address', 'emergency_contact', 'nin']
         extra_kwargs = {
             'nin': {
-                'validators': [NINValidator],
+                'validators': [NINValidator()],
                 'write_only': True
             }
         }
+
+
 class PatientProfileSerializer(ProfileSerializer):
     class Meta(ProfileSerializer.Meta):
         model = PatientProfile
