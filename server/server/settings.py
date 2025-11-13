@@ -11,7 +11,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 
 DEBUG = True
 
-ALLOWED_HOSTS = ["https://purple-plus-auth-demo.onrender.com", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["purple-plus-auth-demo.onrender.com", "localhost", "127.0.0.1"]
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
