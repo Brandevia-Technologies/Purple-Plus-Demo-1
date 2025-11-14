@@ -7,16 +7,38 @@ from .models import CustomUser, StaffProfile, PatientProfile
 from django.contrib.auth.models import Group
 from . import permissions
 from rest_framework.response import Response
+from rest_framework.decorators import api_view, permission_classes
 from datetime import datetime
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from django.db.models import Q
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework.exceptions import ValidationError as DRFValidationError
+from django.contrib.auth import get_user_model
+
 
 # CREATE views
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def create_temp_superuser(request):
+    User = get_user_model()
+
+    if User.objects.filter(email="admin@gmail.com").exists():
+        return Response({"status": "exists"})
+
+    User.objects.create_superuser(
+        email="admin@gmail.com",
+        password="123admin123",
+        first_name="Admin",
+        middle_name="Admin",
+        last_name="Admin",
+        sex="Female",
+    )
+
+    return Response({"status": "created"})
+
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
