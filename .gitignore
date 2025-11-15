@@ -4,3 +4,6 @@ server/db.sqlite3
 server/__pycache__/
 server/*.pyc
 .env
+clinicals/__pycache__/
+__pycache__/
+*.py[cod]
