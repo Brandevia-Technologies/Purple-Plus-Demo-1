@@ -181,6 +181,7 @@ class MeView(generics.RetrieveAPIView):
         return self.request.user
 
 
+
 class PatientListView(generics.ListAPIView):
     serializer_class = CustomUserSerializer
     permission_classes = [IsAdminUser, permissions.CanCreatePatientAccounts]
