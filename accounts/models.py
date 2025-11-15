@@ -70,6 +70,8 @@ class CustomUser(AbstractUser):
         permissions = [
             ('can_create_staff_account', 'Can create staff account'),
             ('can_create_patient_account', 'Can create patient account'),
+            ('can_view_patient_profile', 'Can view patient profile'),
+
         ]
 
     def get_full_name(self):
@@ -137,16 +139,3 @@ class PatientProfile(Profile):
 
     def __str__(self):
         return f"{self.user.get_full_name()} - Patient"
-
-class PatientReport(models.Model):
-    report = models.CharField(blank=False, null=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    patient = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='patient_report')
-
-    class Meta:
-        permissions = [
-            ("can_update", "Can update patient report"),
-            ("can_view", 'Can view single patient reports'),
-            ("can_view_all", "Can view all patient reports"),
-            ("can_delete", "Can delete patient report"),
-        ]

@@ -32,15 +32,22 @@ class ProfileSerializer(serializers.ModelSerializer):
         read_only=True,
         slug_field='email'
     )
+    created_at_formatted = serializers.SerializerMethodField()
+
     class Meta:
         model = Profile
-        fields = ['created_by', 'address', 'emergency_contact', 'nin']
+        fields = ['created_by', 'address',
+                  'emergency_contact', 'nin','created_at_formatted',]
+        read_only_fields = ['created_by']
         extra_kwargs = {
             'nin': {
                 'validators': [NINValidator()],
                 'write_only': True
-            }
+            },
+
         }
+    def get_created_at_formatted(self, obj):
+        return obj.created_at.strftime("%d %B %Y")
 
 
 class PatientProfileSerializer(ProfileSerializer):
@@ -65,16 +72,12 @@ class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ['email', 'first_name', 'middle_name', 'last_name', 'sex',
-                  'group', 'date_joined', 'is_active', 'is_patient', 'is_staff', 'is_superuser',
+                  'group', 'is_active', 'is_patient', 'is_staff', 'is_superuser',
                   'patient_profile', 'staff_profile', 'must_change_password']
+        read_only_fields = ['date_joined', 'last_login',
+                            'is_staff', 'is_superuser', 'is_active', 'is_patient']
         extra_kwargs = {
             'password': {'required': False, 'write_only': True},
-            'date_joined': {'read_only': True},
-            'last_login': {'read_only': True},
-            'is_staff': {'read_only': True},  # set by views/perform_create
-            'is_superuser': {'read_only': True},
-            'is_active': {'read_only': True},
-            'is_patient': {'read_only': True},
         }
 
     def get_group(self, obj):

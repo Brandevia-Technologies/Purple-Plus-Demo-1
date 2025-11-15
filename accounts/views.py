@@ -20,7 +20,7 @@ from django.contrib.auth import get_user_model
 
 
 # CREATE views
-@api_view(["POST"])   # For testing during development
+@api_view(["POST"])
 @permission_classes([AllowAny])
 def create_temp_superuser(request):
     User = get_user_model()
@@ -179,6 +179,7 @@ class MeView(generics.RetrieveAPIView):
     def get_object(self):
         # This returns the currently authenticated user
         return self.request.user
+
 
 
 class PatientListView(generics.ListAPIView):
