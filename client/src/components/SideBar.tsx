@@ -7,6 +7,7 @@ interface MenuItem {
   label: string;
   to: string;
 }
+// Fix the dashboard shifting all wrong on small screens
 // interface
 interface SidebarProps {
   pageTitle?: string;
@@ -123,7 +124,7 @@ const SideBar: React.FC<SidebarProps> = ({ content }) => {
         </svg>
       ),
       label: "Profile",
-      to: "/Profile",
+      to: "/profile",
     },
     {
       icon: (
