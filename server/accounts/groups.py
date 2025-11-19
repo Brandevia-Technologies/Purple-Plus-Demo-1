@@ -45,10 +45,15 @@ def create_groups(sender, **kwargs):  # called automatically after each migratin
             name='Can update patient record',
             content_type=patient_record_ct
         )
+        delete_PR, _ = Permission.objects.get_or_create(
+            codename='can_delete_patient_record',
+            name='Can delete patient record',
+            content_type=patient_record_ct
+        )
 
         # permission to view a patient's profile
-        doctors.permissions.add(create_PR, view_PR, update_PR)
-        nurses.permissions.add(create_PR, view_PR, update_PR)
+        doctors.permissions.add(create_PR, view_PR, update_PR, delete_PR)
+        nurses.permissions.add(create_PR, view_PR, update_PR, delete_PR)
 
         hr, _ = Group.objects.get_or_create(name='Hr')
         create_staff, _ = Permission.objects.get_or_create(
