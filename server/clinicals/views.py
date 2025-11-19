@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404
 from .models import PatientRecord
 from accounts.models import PatientProfile
 from .serializers import PatientRecordSerializer
-from .permissions import CanViewPatientRecord, CanCreatePatientRecord, CanUpdatePatientRecord,  CanDeletePatientRecord
+from .permissions import CanCreatePatientRecord, PatientRecordPermission, CanViewPatientRecordList
 
 class CreatePatientRecordView(generics.CreateAPIView):
     serializer_class = PatientRecordSerializer
@@ -15,18 +15,22 @@ class CreatePatientRecordView(generics.CreateAPIView):
         serializer.save(patient=patient.user, created_by=self.request.user)
 
 
-class ViewPatientRecords(generics.ListAPIView):
+class ListPatientRecordsView(generics.ListAPIView):
     serializer_class = PatientRecordSerializer
-    permission_classes = [CanViewPatientRecord]
+    permission_classes = [CanViewPatientRecordList]
 
     def get_queryset(self):
         patient_id = self.kwargs['patient_id']
-        # patient = PatientProfile.objects.filter()
-        return PatientRecord.objects.filter(patient=patient_id)
+        return PatientRecord.objects.filter(patient_id=patient_id)
 
 
-class UpdatePatientRecordView(generics.UpdateAPIView):
-    permission_classes = [CanUpdatePatientRecord]
-    queryset = PatientRecord.objects.all()
+class PatientRecordDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = PatientRecordSerializer
+    permission_classes = [PatientRecordPermission]
 
+    lookup_field = "id"
+    lookup_url_kwarg = "record_id"
+
+    def get_queryset(self):
+        patient_id = self.kwargs["patient_id"]
+        return PatientRecord.objects.filter(patient_id=patient_id)
